@@ -16,20 +16,20 @@ router.get('/', async (req, res) => {
 
 // ADD a new todo
 router.post('/', async (req, res) => {
-  const { task, due_time } = req.body; // ✅ nhận thêm due_time
+  const { task, due_time } = req.body; 
 
   try {
     const db = await connectToDatabase();
     const [result] = await db.execute(
-      'INSERT INTO todos (task, completed, due_time) VALUES (?, ?, ?)', // ✅ thêm trường
-      [task, false, due_time] // ✅ truyền giá trị vào
+      'INSERT INTO todos (task, completed, due_time) VALUES (?, ?, ?)', 
+      [task, false, due_time] 
     );
 
     res.json({
       id: result.insertId,
       task,
       completed: false,
-      due_time, // ✅ trả về cho frontend luôn
+      due_time, 
     });
   } catch (err) {
     res.status(500).json({ message: 'Error adding todo', error: err });
