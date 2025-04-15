@@ -1,133 +1,122 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Dùng hook useNavigate để chuyển hướng
+import React, { useState, useEffect } from 'react';
+import Todo from "./Todo";
+import TodoForm from "./TodoForm";
+import EditTodoForm from "./EditTodoForm";
+import axios from 'axios';
 
-const Home = () => {
-    const [todos, setTodos] = useState([
-        { id: 1, title: 'Học React', description: 'Học các khái niệm cơ bản trong React', time: '10:00 AM' },
-        { id: 2, title: 'Đi chợ', description: 'Mua thực phẩm cho bữa tối', time: '02:00 PM' },
-        { id: 3, title: 'Làm bài tập', description: 'Làm bài tập toán học', time: '04:00 PM' }
-    ]);
-    
-    const navigate = useNavigate(); // Hook để chuyển hướng
-    
-    // Hàm đăng xuất
-    const handleLogout = () => {
-        // Xóa token hoặc bất kỳ thông tin người dùng nào trong localStorage hoặc sessionStorage
-        localStorage.removeItem('token'); // Giả sử bạn lưu token trong localStorage
-        navigate('/login'); // Chuyển hướng về trang đăng nhập
-    };
+const API_URL = 'http://localhost:3000/api/todos';
 
-    const handleView = (id) => {
-        const todo = todos.find(todo => todo.id === id);
-        alert(`Title: ${todo.title}\nDescription: ${todo.description}\nTime: ${todo.time}`);
-    };
+const TodoWrapper = () => {
+  const [todos, setTodos] = useState([]);
 
-    const handleUpdate = (id) => {
-        const updatedTitle = prompt('Cập nhật tiêu đề:', '');
-        const updatedDescription = prompt('Cập nhật mô tả:', '');
-        const updatedTime = prompt('Cập nhật thời gian:', '');
+  // Fetch todos from API on load
+  useEffect(() => {
+    fetchTodos();
+  }, []);
 
-        setTodos(todos.map(todo =>
-            todo.id === id ? { ...todo, title: updatedTitle, description: updatedDescription, time: updatedTime } : todo
-        ));
-    };
+  const fetchTodos = async () => {
+    try {
+      const res = await axios.get(API_URL);
+      setTodos(res.data);
+    } catch (error) {
+      console.error('Error fetching todos:', error);
+    }
+  };
 
-    const handleDelete = (id) => {
-        setTodos(todos.filter(todo => todo.id !== id));
-    };
+  const addTodo = async (task, due_time) => {
+    try {
+      const res = await axios.post(API_URL, { task, due_time });
+      setTodos([...todos, res.data]);
+    } catch (error) {
+      console.error('Error adding todo:', error);
+    }
+  };
 
-    const containerStyle = {
-        padding: '20px',
-        background: 'linear-gradient(135deg, #ffb6c1, #f0f8ff)',
-        maxWidth: '800px',
-        margin: '0 auto',
-        borderRadius: '8px',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-    };
+  const deleteTodo = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/${id}`);
+      setTodos(todos.filter((todo) => todo.id !== id));
+    } catch (error) {
+      console.error('Error deleting todo:', error);
+    }
+  };
 
-    const titleStyle = {
-        textAlign: 'center',
-        fontSize: '28px',
-        fontWeight: 'bold',
-        marginBottom: '20px',
-        color: '#333',
-    };
+  const toggleComplete = async (id) => {
+    try {
+      await axios.put(`${API_URL}/toggle/${id}`);
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        )
+      );
+    } catch (error) {
+      console.error('Error toggling todo:', error);
+    }
+  };
 
-    const listStyle = {
-        listStyleType: 'none',
-        padding: '0',
-    };
-
-    const itemStyle = {
-        backgroundColor: '#fff',
-        padding: '15px',
-        marginBottom: '10px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 5px rgba(0, 0, 0, 0.15)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    };
-
-    const buttonStyle = {
-        padding: '8px 12px',
-        fontSize: '14px',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        marginLeft: '10px',
-    };
-
-    const viewButtonStyle = {
-        ...buttonStyle,
-        backgroundColor: '#3498db',
-        color: 'white',
-    };
-
-    const updateButtonStyle = {
-        ...buttonStyle,
-        backgroundColor: '#f39c12',
-        color: 'white',
-    };
-
-    const deleteButtonStyle = {
-        ...buttonStyle,
-        backgroundColor: '#e74c3c',
-        color: 'white',
-    };
-
-    const logoutButtonStyle = {
-        ...buttonStyle,
-        backgroundColor: '#2ecc71', // Màu xanh lá
-        color: 'white',
-        marginTop: '20px',
-        width: '100%',
-        fontSize: '16px',
-        padding: '12px 0',
-    };
-
-    return (
-        <div style={containerStyle}>
-            <h2 style={titleStyle}>Danh Sách Công Việc</h2>
-            <ul style={listStyle}>
-                {todos.map(todo => (
-                    <li key={todo.id} style={itemStyle}>
-                        <div>
-                            <h3>{todo.title}</h3>
-                            <p>{todo.description}</p>
-                            <p>{todo.time}</p>
-                        </div>
-                        <div>
-                            <button style={viewButtonStyle} onClick={() => handleView(todo.id)}>Xem</button>
-                            <button style={updateButtonStyle} onClick={() => handleUpdate(todo.id)}>Cập Nhật</button>
-                            <button style={deleteButtonStyle} onClick={() => handleDelete(todo.id)}>Xoá</button>
-                        </div>
-                    </li>
-                ))}
-            </ul>
-            <button style={logoutButtonStyle} onClick={handleLogout}>Đăng Xuất</button>
-        </div>
+  const editTodo = (id) => {
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, isEditing: !todo.isEditing } : todo
+      )
     );
+  };
+
+  const editTask = async (task, id) => {
+    try {
+      await axios.put(`${API_URL}/${id}`, { task });
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, task, isEditing: false } : todo
+        )
+      );
+    } catch (error) {
+      console.error('Error editing task:', error);
+    }
+  };
+
+  return (
+    
+<div
+  style={{
+    maxWidth: "500px",
+    margin: "40px auto",
+    padding: "30px",
+    borderRadius: "16px",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.1)",
+    backgroundColor: "#fefefe",
+    fontFamily: "'Segoe UI', sans-serif",
+  }}
+>
+  <h1
+    style={{
+      textAlign: "center",
+      marginBottom: "20px",
+      color: "#333",
+      fontSize: "28px",
+    }}
+  >
+    Get Things Done!
+  </h1>
+
+  <TodoForm addTodo={addTodo} />
+
+  {todos.map((todo) =>
+    todo.isEditing ? (
+      <EditTodoForm key={todo.id} task={todo} editTodo={editTask} />
+    ) : (
+      <Todo
+        key={todo.id}
+        task={todo}
+        toggleComplete={toggleComplete}
+        deleteTodo={deleteTodo}
+        editTodo={editTodo}
+      />
+    )
+  )}
+</div>
+
+  );
 };
 
-export default Home;
+export default TodoWrapper;
